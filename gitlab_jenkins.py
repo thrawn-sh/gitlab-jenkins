@@ -111,13 +111,13 @@ class JenkinsXmlConfig(object):
         return xml
 
 def clear_project_badges(project):
-    print ' - clearing project badges'
+    print(' - clearing project badges')
     badges = project.badges.list()
     for badge in badges:
         badge.delete()
 
 def clear_project_hooks(project):
-    print ' - clearing project hooks'
+    print(' - clearing project hooks')
     hooks = project.hooks.list()
     for hook in hooks:
         hook.delete()
@@ -154,7 +154,7 @@ def does_any_file_exist(project, *paths):
     return False
 
 def update_project_hooks(project, jenkins_url, jenkins_seed=''):
-    print ' + setting webhook to jenkins'
+    print(' + setting webhook to jenkins')
     hooks = project.hooks.list()
     hooks_size = len(hooks)
 
@@ -178,7 +178,7 @@ def update_project_hooks(project, jenkins_url, jenkins_seed=''):
         project.hooks.create({'confidential_issues_events': False, 'enable_ssl_verification': True, 'issues_events': False, 'job_events': False, 'merge_requests_events': True, 'note_events': False, 'pipeline_events': False, 'push_events': True, 'push_events_branch_filter': None, 'tag_push_events': False, 'url': url, 'wiki_page_events': False})
         
 def update_project_badges(project, jenkins_url):
-    print ' + setting project badges'
+    print(' + setting project badges')
     badges = project.badges.list()
     badges_size = len(badges)
 
@@ -193,7 +193,7 @@ def update_project_badges(project, jenkins_url):
         project.badges.create({'image_url':image_link, 'link_url':link_url})
 
 def update_protected_branches(project):
-    print ' + protecting master branch'
+    print(' + protecting master branch')
     protected_branches = project.protectedbranches.list()
     for protected_branche in protected_branches:
         protected_branche.delete()
@@ -201,7 +201,7 @@ def update_protected_branches(project):
     project.protectedbranches.create({'name':'master', 'merge_access_level':gitlab.DEVELOPER_ACCESS, 'push_access_level':gitlab.MAINTAINER_ACCESS})
 
 def update_project_settings(project):
-    print ' + updating settings'
+    print(' + updating settings')
     project.container_registry_enabled = False
     project.default_branch = 'master'
     project.issues_enabled = False
@@ -214,7 +214,7 @@ def update_project_settings(project):
     project.wiki_enabled = False
 
 def configure_jenkins(project, gitlab_url, jenkins_server, jenkins_seed):
-    print ' * configuiring Jenkins pipeline'
+    print(' * configuiring Jenkins pipeline')
     config_xml = JenkinsXmlConfig(project, gitlab_url, jenkins_server, jenkins_seed).xml_config()
     if not jenkins_server.job_exists(project.name):
         jenkins_server.create_job(project.name, config_xml)
@@ -245,7 +245,7 @@ def get_tags_for_project(project):
     return sorted(tags)
 
 def update_project_tags(project):
-    print ' + setting project tags'
+    print(' + setting project tags')
     project.tag_list = get_tags_for_project(project)
 
 def main():
@@ -258,10 +258,10 @@ def main():
     parser.add_argument('--jenkins-seed', help='jenkins seed')
 
     args = parser.parse_args()
-    print '================================================================================'
-    print 'gitlab-url  : "%s"' % args.gitlab_url
-    print 'jenkins-url : "%s"' % args.jenkins_url
-    print '================================================================================'
+    print('================================================================================')
+    print('gitlab-url  : "%s"' % args.gitlab_url)
+    print('jenkins-url : "%s"' % args.jenkins_url)
+    print('================================================================================')
     gitlab_server = gitlab.Gitlab(url=args.gitlab_url, private_token=args.gitlab_admin_token, ssl_verify=True)
     gitlab_server.auth()
 
@@ -275,9 +275,9 @@ def main():
         if first:
             first = False
         else:
-            print '--------------------------------------------------------------------------------'
+            print('--------------------------------------------------------------------------------')
 
-        print '[%4d] %s' % (project.id, project.web_url)
+        print('[%4d] %s' % (project.id, project.web_url))
         update_project_settings(project)
         update_protected_branches(project)
         update_project_tags(project)
@@ -294,7 +294,7 @@ def main():
             configure_jenkins(project, args.gitlab_url, jenkins_server, args.jenkins_seed)
 
         project.save()
-    print '================================================================================'
+    print('================================================================================')
 
 if __name__ == '__main__':
     main()
