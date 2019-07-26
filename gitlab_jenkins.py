@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 # pip install python-gitlab
@@ -6,8 +6,9 @@
 
 import argparse
 import hashlib
-from lxml import etree
-from lxml import objectify
+from lxml     import etree
+from lxml     import objectify
+from urlparse import urlparse
 
 import gitlab
 import jenkins
@@ -19,7 +20,7 @@ class JenkinsXmlConfig(object):
         self._gitlab_url = gitlab_url
         self._jenkins_server = jenkins_server
         self._jenkins_seed = jenkins_seed
-    
+
     def __xml_user_remote_configs(self):
         element = objectify.Element('userRemoteConfigs')
 
@@ -82,7 +83,8 @@ class JenkinsXmlConfig(object):
             else:
                 description += ', '
 
-            description += '<a href="%s/explore/projects?tag=%s">%s</a>' % (self._gitlab_url, tag, tag)
+            url = create_gitlab_tag_url(self._gitlab_url, tag)
+            description += '<a href="%s">%s</a>' % (url, tag)
 
         description += '<hr>'
         description += '<a href="%s">%s</a>' % (self._project.web_url, self._project.web_url)
@@ -123,22 +125,37 @@ def clear_project_hooks(project):
         hook.delete()
 
 def create_jenkins_pipeline_badge_link(project, jenkins_url):
-    # FIXME URL encode
-    return '%s/job/%s/' % (jenkins_url, project.path)
+    parts = urlparse(jenkins_url)
+    path = parts.path + '/job/' + project.path
+    parts = parts._replace(path=path)
+    return parts.geturl()
 
 def create_jenkins_pipeline_badge_image(project, jenkins_url):
-    # FIXME URL encode
-    return '%s/buildStatus/icon?job=%s' % (jenkins_url, project.path)
+    parts = urlparse(jenkins_url)
+    path = parts.path + '/buildStatus/icon'
+    query = "job=" + project.path
+    parts = parts._replace(path=path, query=query)
+    return parts.geturl()
 
 def create_jenkins_hook_url(project, jenkins_url, jenkins_seed=''):
     token = create_jenkins_token(project, jenkins_seed)
-    # FIXME URL encode
-    return '%s/job/%s/build?TOKEN=%s' % (jenkins_url, project.path, token)
+    parts = urlparse(jenkins_url)
+    path = parts.path + '/job/' + project.path
+    query = "TOKEN=" + token
+    parts = parts._replace(path=path, query=query)
+    return parts.geturl()
 
 def create_jenkins_token(project, jenkins_seed=''):
     token = hashlib.sha256(jenkins_seed)
     token.update(project.path_with_namespace)
     return token.hexdigest()
+
+def create_gitlab_tag_url(gitlab_url, tag):
+    parts = urlparse(gitlab_url)
+    path = parts.path + '/explore/projects'
+    query = "tag=" + tag
+    parts = parts._replace(path=path, query=query)
+    return parts.geturl()
 
 def does_support_jenkins(project):
     return does_any_file_exist(project, 'Jenkinsfile')
@@ -176,7 +193,7 @@ def update_project_hooks(project, jenkins_url, jenkins_seed=''):
         hook.save()
     else:
         project.hooks.create({'confidential_issues_events': False, 'enable_ssl_verification': True, 'issues_events': False, 'job_events': False, 'merge_requests_events': True, 'note_events': False, 'pipeline_events': False, 'push_events': True, 'push_events_branch_filter': None, 'tag_push_events': False, 'url': url, 'wiki_page_events': False})
-        
+
 def update_project_badges(project, jenkins_url):
     print(' + setting project badges')
     badges = project.badges.list()
