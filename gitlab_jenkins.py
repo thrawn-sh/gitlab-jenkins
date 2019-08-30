@@ -6,12 +6,13 @@
 
 import argparse
 import hashlib
-from lxml     import etree
-from lxml     import objectify
+from lxml import etree
+from lxml import objectify
 from urlparse import urlparse
 
 import gitlab
 import jenkins
+
 
 class JenkinsXmlConfig(object):
 
@@ -112,11 +113,13 @@ class JenkinsXmlConfig(object):
         xml = etree.tostring(configuration, pretty_print=True)
         return xml
 
+
 def clear_project_badges(project):
     print(' - clearing project badges')
     badges = project.badges.list()
     for badge in badges:
         badge.delete()
+
 
 def clear_project_hooks(project):
     print(' - clearing project hooks')
@@ -124,11 +127,13 @@ def clear_project_hooks(project):
     for hook in hooks:
         hook.delete()
 
+
 def create_jenkins_pipeline_badge_link(project, jenkins_url):
     parts = urlparse(jenkins_url)
     path = parts.path + '/job/' + project.path
     parts = parts._replace(path=path)
     return parts.geturl()
+
 
 def create_jenkins_pipeline_badge_image(project, jenkins_url):
     parts = urlparse(jenkins_url)
@@ -136,6 +141,7 @@ def create_jenkins_pipeline_badge_image(project, jenkins_url):
     query = "job=" + project.path
     parts = parts._replace(path=path, query=query)
     return parts.geturl()
+
 
 def create_jenkins_hook_url(project, jenkins_url, jenkins_seed=''):
     token = create_jenkins_token(project, jenkins_seed)
@@ -145,10 +151,12 @@ def create_jenkins_hook_url(project, jenkins_url, jenkins_seed=''):
     parts = parts._replace(path=path, query=query)
     return parts.geturl()
 
+
 def create_jenkins_token(project, jenkins_seed=''):
     token = hashlib.sha256(jenkins_seed)
     token.update(project.path_with_namespace)
     return token.hexdigest()
+
 
 def create_gitlab_tag_url(gitlab_url, tag):
     parts = urlparse(gitlab_url)
@@ -157,8 +165,10 @@ def create_gitlab_tag_url(gitlab_url, tag):
     parts = parts._replace(path=path, query=query)
     return parts.geturl()
 
+
 def does_support_jenkins(project):
     return does_any_file_exist(project, 'Jenkinsfile')
+
 
 def does_any_file_exist(project, *paths):
     for path in paths:
@@ -169,6 +179,7 @@ def does_any_file_exist(project, *paths):
             pass
 
     return False
+
 
 def update_project_hooks(project, jenkins_url, jenkins_seed=''):
     print(' + setting webhook to jenkins')
@@ -194,6 +205,7 @@ def update_project_hooks(project, jenkins_url, jenkins_seed=''):
     else:
         project.hooks.create({'confidential_issues_events': False, 'enable_ssl_verification': True, 'issues_events': False, 'job_events': False, 'merge_requests_events': True, 'note_events': False, 'pipeline_events': False, 'push_events': True, 'push_events_branch_filter': None, 'tag_push_events': False, 'url': url, 'wiki_page_events': False})
 
+
 def update_project_badges(project, jenkins_url):
     print(' + setting project badges')
     badges = project.badges.list()
@@ -207,7 +219,8 @@ def update_project_badges(project, jenkins_url):
         badge.link_url = link_url
         badge.save()
     else:
-        project.badges.create({'image_url':image_link, 'link_url':link_url})
+        project.badges.create({'image_url': image_link, 'link_url': link_url})
+
 
 def update_protected_branches(project):
     print(' + protecting master branch')
@@ -215,7 +228,8 @@ def update_protected_branches(project):
     for protected_branche in protected_branches:
         protected_branche.delete()
 
-    project.protectedbranches.create({'name':'master', 'merge_access_level':gitlab.DEVELOPER_ACCESS, 'push_access_level':gitlab.MAINTAINER_ACCESS})
+    project.protectedbranches.create({'name': 'master', 'merge_access_level': gitlab.DEVELOPER_ACCESS, 'push_access_level': gitlab.MAINTAINER_ACCESS})
+
 
 def update_project_settings(project):
     print(' + updating settings')
@@ -230,6 +244,7 @@ def update_project_settings(project):
     project.snippets_enabled = False
     project.wiki_enabled = False
 
+
 def configure_jenkins(project, gitlab_url, jenkins_server, jenkins_seed):
     print(' * configuiring Jenkins pipeline')
     config_xml = JenkinsXmlConfig(project, gitlab_url, jenkins_server, jenkins_seed).xml_config()
@@ -237,6 +252,7 @@ def configure_jenkins(project, gitlab_url, jenkins_server, jenkins_seed):
         jenkins_server.create_job(project.name, config_xml)
     else:
         jenkins_server.reconfig_job(project.name, config_xml)
+
 
 def get_tags_for_project(project):
     tags = set()
@@ -261,9 +277,11 @@ def get_tags_for_project(project):
 
     return sorted(tags)
 
+
 def update_project_tags(project):
     print(' + setting project tags')
     project.tag_list = get_tags_for_project(project)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Allign gitlab project configurations.')
@@ -312,6 +330,7 @@ def main():
 
         project.save()
     print('================================================================================')
+
 
 if __name__ == '__main__':
     main()
