@@ -2,7 +2,7 @@ all: verify
 
 initialise:
 	@echo [pip] installing requirements
-	@pipenv install
+	@pipenv install --dev
 
 verify: initialise
 	@echo [linit] checking source
